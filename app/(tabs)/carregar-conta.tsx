@@ -1,52 +1,87 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   CreditCard,
   Info
 } from 'lucide-react-native';
+import { API_BASE_URL, API_KEY } from '@/utils/constants';
 
 export default function CarregarContaScreen() {
   const router = useRouter();
-  const [valor, setValor] = useState('');
-  const [showResumo, setShowResumo] = useState(false);
+  const [montante, setMontante] = useState('');
+  const [showResume, setShowResume] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const encargos = 150;
-  const valorNumerico = parseFloat(valor.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-  const totalPagar = valorNumerico + encargos;
+  const numericValue = parseFloat(montante.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+  const totalPagar = numericValue + encargos;
 
-  const formatarMoeda = (value: string) => {
-    // Remove tudo que não é dígito
-    const numericValue = value.replace(/[^\d]/g, '');
-    
-    if (numericValue === '') return '';
-    
-    // Converte para número e formata
-    const number = parseInt(numericValue) / 100;
-    return number.toLocaleString('pt-BR', { 
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2 
-    });
+const formatCoin = (value: string) => {
+  const numericValue = value.replace(/\D/g, ""); 
+  if (!numericValue) return "";
+
+  const number = parseFloat(numericValue) / 100;
+
+  return number.toLocaleString("pt-AO", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+
+  const handleValueChange = (text: string) => {
+    const formatted = formatCoin(text);
+    setMontante(formatted);
+    setShowResume(formatted !== '' && parseFloat(formatted.replace(/[^\d,]/g, '').replace(',', '.')) > 0);
   };
 
-  const handleValorChange = (text: string) => {
-    const formatted = formatarMoeda(text);
-    setValor(formatted);
-    setShowResumo(formatted !== '' && parseFloat(formatted.replace(/[^\d,]/g, '').replace(',', '.')) > 0);
-  };
+const handlePay = async () => {
+  const cleanValue = parseFloat(
+    montante.replace(/\./g, "").replace(",", ".")
+  );
 
-  const handlePagar = () => {
-    if (valorNumerico <= 0) {
-      Alert.alert('Erro', 'Por favor, insira um valor válido.');
-      return;
+  if (!cleanValue || cleanValue <= 0) {
+    Alert.alert("Erro", "Por favor, insira um valor válido.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/cliente/carteira/carregar/referencia-multicaixa`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: API_KEY,
+        },
+        body: new URLSearchParams({
+          montante: cleanValue.toString(),
+        }),
+      }
+    );
+
+    const data = await response.json();
+    console.log(data, cleanValue);
+
+    if (!response.ok || data.tipo !== "Sucesso") {
+      throw new Error(data.message || "Erro ao carregar a conta");
     }
 
     router.push({
-      pathname: '/(tabs)/referencia-pagamento',
-      params: { valor: valorNumerico.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }
+      pathname: "/(tabs)/referencia-pagamento",
+      params: { paymentData: data },
     });
-  };
+  } catch (error) {
+    console.error("Erro ao carregar a conta:", error);
+    Alert.alert("Erro", "Por favor, insira um valor válido.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -61,59 +96,46 @@ export default function CarregarContaScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.formSection}>
           <Text style={styles.sectionTitle}>Indique o valor que deseja carregar na conta</Text>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Valor a carregar *</Text>
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.textInput}
                 placeholder="0,00"
-                value={valor}
-                onChangeText={handleValorChange}
+                value={montante}
+                onChangeText={handleValueChange}
                 keyboardType="numeric"
                 placeholderTextColor="#999999"
               />
               <Text style={styles.currencyLabel}>KZ</Text>
             </View>
           </View>
-
-          <View style={styles.infoCard}>
-            <View style={styles.infoHeader}>
-              <Info size={16} color="#1E579C" />
-              <Text style={styles.infoTitle}>Informações importantes</Text>
-            </View>
-            <Text style={styles.infoText}>
-              • Valor mínimo para carregamento: 1.000 KZ{'\n'}
-              • Valor máximo por transação: 500.000 KZ{'\n'}
-              • Encargos bancários aplicáveis: 150 KZ{'\n'}
-              • Processamento instantâneo
-            </Text>
-          </View>
         </View>
 
-        {showResumo && (
+        {showResume && (
           <View style={styles.resumoSection}>
             <Text style={styles.resumoTitle}>Resumo</Text>
-            
+
             <View style={styles.resumoCard}>
               <View style={styles.resumoItem}>
                 <Text style={styles.resumoLabel}>Valor a carregar na conta</Text>
                 <Text style={styles.resumoValue}>
-                  KZ {valorNumerico.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  KZ {numericValue.toLocaleString('pt-AO', { minimumFractionDigits: 2 })}
                 </Text>
               </View>
-              
+
               <View style={styles.resumoDivider} />
-              
+
               <View style={styles.resumoItem}>
                 <Text style={styles.resumoLabel}>Encargos bancários</Text>
                 <Text style={styles.resumoValue}>
-                  KZ {encargos.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  KZ {encargos.toLocaleString('pt-AO', { minimumFractionDigits: 2 })}
                 </Text>
               </View>
-              
+
               <View style={styles.resumoDivider} />
-              
+
               <View style={styles.resumoItem}>
                 <Text style={styles.resumoLabelTotal}>Total a pagar</Text>
                 <Text style={styles.resumoValueTotal}>
@@ -122,12 +144,13 @@ export default function CarregarContaScreen() {
               </View>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.pagarButton}
-              onPress={handlePagar}
+              onPress={handlePay}
+              disabled={loading}
             >
               <CreditCard size={20} color="#FFFFFF" />
-              <Text style={styles.pagarButtonText}>Pagar</Text>
+              <Text style={styles.pagarButtonText}>{loading ? 'Aguarde...' : 'Pagar'}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -174,7 +197,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Barlow-SemiBold',
+    fontFamily: 'Barlow-medium',
     color: '#333333',
     marginBottom: 20,
     textAlign: 'center',
@@ -194,7 +217,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 16,
+    paddingVertical: 5,
     borderWidth: 2,
     borderColor: '#1E579C',
   },
@@ -211,30 +234,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Barlow-SemiBold',
     color: '#1E579C',
     marginLeft: 8,
-  },
-  infoCard: {
-    backgroundColor: '#F0F4F8',
-    borderRadius: 8,
-    padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#1E579C',
-  },
-  infoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  infoTitle: {
-    fontSize: 14,
-    fontFamily: 'Barlow-SemiBold',
-    color: '#1E579C',
-    marginLeft: 8,
-  },
-  infoText: {
-    fontSize: 12,
-    fontFamily: 'Barlow-Regular',
-    color: '#666666',
-    lineHeight: 18,
   },
   resumoSection: {
     marginBottom: 32,

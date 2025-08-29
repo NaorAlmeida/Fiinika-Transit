@@ -60,15 +60,8 @@ export default function HomeScreen() {
     })();
   }, []);
 
-  if (!location || !fontsLoaded) {
-    return (
-      <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapPlaceholderText}>Obtendo localização...</Text>
-      </View>
-    );
-  }
 
-  const mapHtml = `
+  const mapHtml =  location ? `
     <!DOCTYPE html>
     <html>
     <head>
@@ -102,7 +95,7 @@ export default function HomeScreen() {
       </script>
     </body>
     </html>
-  `;
+  `: "";;
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -131,7 +124,13 @@ export default function HomeScreen() {
       </View>
 
       {/* MAPA */}
-      <View style={styles.mapContainer}>
+
+      {(!location || !fontsLoaded) ? (
+        <View style={styles.mapPlaceholder}>
+          <Text style={styles.mapPlaceholderText}>Obtendo localização...</Text>
+        </View>
+      ) : (
+        <View style={styles.mapContainer}>
         <WebView
           source={{ html: mapHtml }}
           style={styles.map}
@@ -141,6 +140,7 @@ export default function HomeScreen() {
           scrollEnabled={false}
         />
       </View>
+      )}
 
       {/* BOTTOM SHEET */}
       <BottomSheet

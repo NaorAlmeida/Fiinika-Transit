@@ -38,7 +38,6 @@ export default function FretesScreen() {
         setFretes(data.lista || []);
       } catch (error) {
         setHasError(true);
-        console.error('Erro ao buscar fretes:', error);
       } finally {
         setLoading(false);
       }
@@ -159,7 +158,7 @@ export default function FretesScreen() {
             </View>
           )}
 
-          {(!loading && fretes.length != 0 && hasError) && (
+          {(!loading && fretes.length === 0 && hasError) && (
             <View
               style={{
                 flex: 1,

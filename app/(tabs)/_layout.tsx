@@ -10,6 +10,7 @@ import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { useRouter, usePathname } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { Home, Truck, Wallet, User, LogOut } from 'lucide-react-native';
+import { API_BASE_URL, API_KEY } from '@/utils/constants';
 
 function CustomDrawerContent(props: any) {
   const router = useRouter();
@@ -21,6 +22,21 @@ function CustomDrawerContent(props: any) {
     { name: 'Carteira', route: '/(tabs)/carteira', icon: Wallet },
     { name: 'Meu Perfil', route: '/(tabs)/perfil', icon: User },
   ];
+
+  const handleLogout = async () => {
+    try {
+      fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+        method: "GET",
+        headers: {
+          Authorization: API_KEY,
+        },
+      });
+      router.push('/login');
+    } catch (error) {
+      console.error("Error logging out:", error);
+      throw new Error("Um erro ocorreu! Por favor, tente novamente.");
+    }
+  };
 
   return (
     <View style={styles.drawerContainer}>
@@ -58,7 +74,7 @@ function CustomDrawerContent(props: any) {
       </DrawerContentScrollView>
 
       <View style={styles.drawerFooter}>
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={() => handleLogout()}>
           <LogOut size={20} color="#666" />
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>

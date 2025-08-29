@@ -5,7 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { ArrowLeft, MapPin, Package, Clock, DollarSign, CircleCheck as CheckCircle, Circle, Truck, Calendar, User, Camera, FileText, QrCode, Info, Navigation, Shield } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Package, Clock, DollarSign, CircleCheck as CheckCircle, Circle, Truck, Calendar, User, Camera, FileText, QrCode } from 'lucide-react-native';
 
 export default function DetalhesFrete() {
   const router = useRouter();

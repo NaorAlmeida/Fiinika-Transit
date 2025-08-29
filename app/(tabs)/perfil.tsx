@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,7 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+import { DrawerActions, useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
   Menu,
   User,
@@ -17,7 +16,7 @@ import {
   MapPin,
   Camera,
   CreditCard,
-  Hash,
+  BookText,
   Building,
   Pencil,
 } from 'lucide-react-native';
@@ -27,7 +26,7 @@ import { API_BASE_URL, API_KEY } from '@/utils/constants';
 export default function PerfilScreen() {
   const navigation = useNavigation();
   const router = useRouter();
-  const [profileData, setProfileData] = useState<Array<any>>([]);
+  const [profileData, setProfileData] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
 
@@ -35,33 +34,31 @@ export default function PerfilScreen() {
     navigation.dispatch(DrawerActions.openDrawer());
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/v1/cliente/dados-perfil`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': ' application/x-www-form-urlencoded',
-            Authorization: `${API_KEY}`,
-          },
-        });
-        const data = await response.json();
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/v1/cliente/dados-perfil`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `${API_KEY}`,
+        },
+      });
+      const data = await response.json();
+      setProfileData(data.info || {});
+    } catch (error) {
+      setHasError(true);
+      console.error('Erro ao buscar perfil:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        console.log('====================================');
-        console.log(data);
-        console.log('====================================');
-
-        setProfileData(data.lista || []);
-      } catch (error) {
-        setHasError(true);
-        console.error('Erro ao buscar dados do utilizador:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -76,12 +73,17 @@ export default function PerfilScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <User size={40} color="#1E579C" />
-            </View>
-            <TouchableOpacity style={styles.cameraButton}>
-              <Camera size={16} color="#FFFFFF" />
-            </TouchableOpacity>
+
+            {profileData.fotoPerfil ? (
+              <Image
+                source={{ uri: `${API_BASE_URL}/uploads/clientes/${profileData.fotoPerfil}` }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <User size={40} color="#1E579C" />
+              </View>
+            )}
           </View>
 
           <Text style={styles.userName}>{profileData.nome}</Text>
@@ -99,11 +101,11 @@ export default function PerfilScreen() {
                 styles.statusText,
                 {
                   color:
-                    profileData.estado === 'Activo' ? '#28A745' : '#DC3545',
+                    profileData.estado === 'Autorizado' ? '#28A745' : '#DC3545',
                 },
               ]}
             >
-              {profileData.estado.toUpperCase()}
+              {profileData.estado}
             </Text>
           </View>
         </View>
@@ -123,7 +125,7 @@ export default function PerfilScreen() {
 
           <View style={styles.infoItem}>
             <View style={styles.infoIcon}>
-              <Hash size={20} color="#1E579C" />
+              <BookText size={20} color="#1E579C" />
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>NIF</Text>
@@ -139,7 +141,7 @@ export default function PerfilScreen() {
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Telemóvel</Text>
-              <Text style={styles.infoValue}>{profileData.telemovel}</Text>
+              <Text style={styles.infoValue}>{profileData.telefone}</Text>
             </View>
           </View>
 
@@ -176,12 +178,12 @@ export default function PerfilScreen() {
           <View style={styles.infoDivider} />
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>Total Gasto</Text>
-            <Text style={styles.statValue}>
-              {profileData.totalGasto.toLocaleString('pt-BR', {
+            {/* <Text style={styles.statValue}>
+              {profileData.saldoDisponivel.toLocaleString('pt-BR', {
                 minimumFractionDigits: 2,
               })}{' '}
               KZ
-            </Text>
+            </Text> */}
           </View>
         </View>
 
@@ -317,7 +319,6 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 14,
-    fontFamily: 'Barlow-SemiBold',
     color: '#333333',
   },
   infoDivider: {

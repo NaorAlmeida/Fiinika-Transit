@@ -1,68 +1,60 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
-import { 
-  Menu, 
-  DollarSign, 
-  Eye,
-  EyeOff
-} from 'lucide-react-native';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { DrawerActions, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { Menu, Eye, EyeOff, ClipboardX } from 'lucide-react-native';
+import { API_BASE_URL, API_KEY } from '@/utils/constants';
+
+type Transaction = {
+  id: string;
+  tipo: string;
+  valor: number;
+  dataCriacao: string;
+  referencia: string;
+  estado: string;
+};
 
 export default function CarteiraScreen() {
   const navigation = useNavigation();
   const [showBalance, setShowBalance] = useState(true);
+  const [transactionsData, setTransactionsData] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+
+
 
   const openDrawer = () => {
     navigation.dispatch(DrawerActions.openDrawer());
   };
 
-  const transactions = [
-    {
-      id: 1,
-      metodo: 'Referência Multicaixa',
-      valor: 125000.00,
-      data: '15/01/2024',
-      estado: 'Pago',
-      referencia: '123456789',
-    },
-    {
-      id: 2,
-      metodo: 'Referência Multicaixa',
-      valor: 89500.00,
-      data: '12/01/2024',
-      estado: 'Pago',
-      referencia: '987654321',
-    },
-    {
-      id: 3,
-      metodo: 'Referência Multicaixa',
-      valor: 22500.00,
-      data: '11/01/2024',
-      estado: 'Expirado',
-      referencia: '456789123',
-    },
-    {
-      id: 4,
-      metodo: 'Referência Multicaixa',
-      valor: 42500.00,
-      data: '10/01/2024',
-      estado: 'Pendente',
-      referencia: '789123456',
-    },
-    {
-      id: 5,
-      metodo: 'Referência Multicaixa',
-      valor: 160000.00,
-      data: '08/01/2024',
-      estado: 'Pago',
-      referencia: '321654987',
-    },
-  ];
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/v1/cliente/carteira/movimentos`, {
+        method: 'GET',
+        headers: {
+          Authorization: `${API_KEY}`,
+        },
+      });
+      const data = await response.json();
+      setTransactionsData(data.lista || {});
 
-  const totalReceitas = transactions
-    .filter(t => t.estado === 'Pago')
-    .reduce((sum, t) => sum + t.valor, 0);
+      console.log(data);
+
+    } catch (error) {
+      setHasError(true);
+      console.error('Erro ao buscar transações:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
+  const totalReceitas = 0;
 
   return (
     <View style={styles.container}>
@@ -96,41 +88,41 @@ export default function CarteiraScreen() {
             <Text style={styles.sectionTitle}>Transações Recentes</Text>
           </View>
 
-          {transactions.map((transaction) => (
+          {transactionsData.map((transaction: any) => (
             <View key={transaction.id} style={styles.transactionCard}>
               <View style={styles.transactionInfo}>
                 <Text style={styles.transactionMethod}>
-                {transaction.metodo}
+                  {transaction.metodo}
                 </Text>
                 <Text style={styles.transactionValue}>
-                 {transaction.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} KZ
+                  {transaction.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} KZ
                 </Text>
                 <Text style={styles.transactionDate}>
-                {transaction.data}
+                  {transaction.data}
                 </Text>
                 <Text style={styles.transactionReference}>
-                {transaction.referencia}
+                  {transaction.referencia}
                 </Text>
               </View>
-              
+
               <View style={[
                 styles.statusBadge,
-                { 
-                  backgroundColor: transaction.estado === 'Pago' 
-                    ? '#28A74515' 
+                {
+                  backgroundColor: transaction.estado === 'Pago'
+                    ? '#28A74515'
                     : transaction.estado === 'Expirado'
-                    ? '#DC354515'
-                    : '#FFC10715' 
+                      ? '#DC354515'
+                      : '#FFC10715'
                 }
               ]}>
                 <Text style={[
                   styles.statusText,
-                  { 
-                    color: transaction.estado === 'Pago' 
-                      ? '#28A745' 
+                  {
+                    color: transaction.estado === 'Pago'
+                      ? '#28A745'
                       : transaction.estado === 'Expirado'
-                      ? '#DC3545'
-                      : '#FFC107' 
+                        ? '#DC3545'
+                        : '#FFC107'
                   }
                 ]}>
                   {transaction.estado.toUpperCase()}
@@ -138,6 +130,55 @@ export default function CarteiraScreen() {
               </View>
             </View>
           ))}
+
+
+          {loading && (
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingTop: 160,
+              }}
+            >
+              <ActivityIndicator size="large" color="#1E579C" />
+              <Text style={{ color: '#666666', marginTop: 8 }}>
+                A carregar...
+              </Text>
+            </View>
+          )}
+
+          {(!loading && transactionsData.length === 0 && !hasError) && (
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingTop: 100,
+              }}
+            >
+              <ClipboardX size={60} strokeWidth={1} color="#99A1AF" />
+              <Text style={{ color: '#666666', marginTop: 8 }}>
+                Nenhuma transação encontrada.
+              </Text>
+            </View>
+          )}
+
+          {(!loading && transactionsData.length === 0 && hasError) && (
+            <View
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingTop: 160,
+              }}
+            >
+              <CircleAlert size={60} strokeWidth={1} color="#ff0000" />
+              <Text style={{ color: '#666666', marginTop: 8 }}>
+                Um erro ocorreu ao carregar os transactionsData.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
