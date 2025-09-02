@@ -4,7 +4,7 @@
     "slug": "fiinika-transit",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -24,6 +24,15 @@
         "expo-image-picker",
         {
           "photosPermission": "Permitir que o aplicativo acesse suas fotos."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/images/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain"
         }
       ]
     ],

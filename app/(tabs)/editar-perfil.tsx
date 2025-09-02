@@ -8,7 +8,7 @@ import {
   Phone,
   Mail,
   MapPin,
-  Hash,
+  BookText,
   Building,
   Camera,
   Save,
@@ -130,7 +130,7 @@ export default function EditarPerfilScreen() {
         text2: 'Dados atualizados com sucesso!',
       });
 
-      router.replace('/(tabs)/perfil');
+      router.push('/(tabs)/perfil');
     } catch (error: any) {
       Alert.alert('Erro', error.message || "Falha ao atualizar perfil");
     } finally {
@@ -172,7 +172,7 @@ export default function EditarPerfilScreen() {
                 <Camera size={16} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.photoText}>Toque para alterar foto</Text>
+            <Text style={styles.photoText}>Toque para alterar a foto</Text>
           </View>
 
           <View style={styles.formSection}>
@@ -211,7 +211,7 @@ export default function EditarPerfilScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>NIF *</Text>
               <View style={styles.inputContainer}>
-                <Hash size={20} color="#1E579C" />
+                <BookText size={20} color="#1E579C" />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Digite seu NIF"

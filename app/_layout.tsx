@@ -41,7 +41,7 @@ export default function RootLayout() {
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          paddingTop: 160,
+          paddingTop: 120,
         }}
       >
         <ActivityIndicator size="large" color="#1E579C" />
@@ -56,6 +56,7 @@ export default function RootLayout() {
       <>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="login" />
+          <Stack.Screen name="register" />
         </Stack>
         <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
       </>

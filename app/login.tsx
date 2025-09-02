@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -60,9 +59,6 @@ export default function LoginScreen() {
       if (!response.ok || data.tipo != 'Sucesso') {
         throw new Error(data.msg || 'Erro ao fazer login');
       }
-
-      // 🔑 Aqui você pode salvar o token, se o backend retornar
-      // await SecureStore.setItemAsync("token", data.token);
 
       Toast.show({
         type: 'success',
@@ -154,11 +150,7 @@ export default function LoginScreen() {
           <View style={styles.registerSection}>
             <Text style={styles.registerText}>Não tem uma conta? </Text>
             <TouchableOpacity
-              onPress={() =>
-                Linking.openURL(
-                  'https://transit.fiinika.com/auto-cadastro-transportador'
-                )
-              }
+              onPress={() => router.push('/register')}
             >
               <Text style={styles.registerLink}>Cadastre-se</Text>
             </TouchableOpacity>

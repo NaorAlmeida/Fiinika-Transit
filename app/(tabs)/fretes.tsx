@@ -90,7 +90,7 @@ export default function FretesScreen() {
               key={frete.codigo}
               style={styles.freteCard}
               onPress={() =>
-                router.push(`/(tabs)/detalhes-frete?id=${frete.id}`)
+                router.push(`/(tabs)/detalhes-frete?id=${frete.codigo}`)
               }
             >
               <View style={styles.cardHeader}>

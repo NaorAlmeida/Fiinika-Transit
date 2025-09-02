@@ -4,90 +4,88 @@ import { useState } from 'react';
 import {
   ArrowLeft,
   CreditCard,
-  Info
 } from 'lucide-react-native';
 import { API_BASE_URL, API_KEY } from '@/utils/constants';
 
 export default function CarregarContaScreen() {
   const router = useRouter();
-  const [montante, setMontante] = useState('');
   const [showResume, setShowResume] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [montante, setMontante] = useState("");
+  const [montanteInt, setMontanteInt] = useState(0);
 
   const encargos = 150;
   const numericValue = parseFloat(montante.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-  const totalPagar = numericValue + encargos;
+  const totalPay = numericValue + encargos;
 
-const formatCoin = (value: string) => {
-  const numericValue = value.replace(/\D/g, ""); 
-  if (!numericValue) return "";
+  const formatCurrency = (value: string): string => {
+    // Pega só os dígitos
+    const numericValue = value.replace(/\D/g, "");
 
-  const number = parseFloat(numericValue) / 100;
-
-  return number.toLocaleString("pt-AO", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
-
-  const handleValueChange = (text: string) => {
-    const formatted = formatCoin(text);
-    setMontante(formatted);
-    setShowResume(formatted !== '' && parseFloat(formatted.replace(/[^\d,]/g, '').replace(',', '.')) > 0);
-  };
-
-const handlePay = async () => {
-  const cleanValue = parseFloat(
-    montante.replace(/\./g, "").replace(",", ".")
-  );
-
-  if (!cleanValue || cleanValue <= 0) {
-    Alert.alert("Erro", "Por favor, insira um valor válido.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const response = await fetch(
-      `${API_BASE_URL}/api/v1/cliente/carteira/carregar/referencia-multicaixa`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: API_KEY,
-        },
-        body: new URLSearchParams({
-          montante: cleanValue.toString(),
-        }),
-      }
-    );
-
-    const data = await response.json();
-    console.log(data, cleanValue);
-
-    if (!response.ok || data.tipo !== "Sucesso") {
-      throw new Error(data.message || "Erro ao carregar a conta");
+    if (!numericValue) {
+      setMontanteInt(0);
+      return "";
     }
 
-    router.push({
-      pathname: "/(tabs)/referencia-pagamento",
-      params: { paymentData: data },
+    const intValue = parseInt(numericValue, 10);
+    setMontanteInt(intValue);
+
+    const number = intValue / 100;
+
+    return number.toLocaleString("pt-AO", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
-  } catch (error) {
-    console.error("Erro ao carregar a conta:", error);
-    Alert.alert("Erro", "Por favor, insira um valor válido.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const handleValueChange = (text: string) => {
+    const formatted = formatCurrency(text);
+    setMontante(formatted);
+    setShowResume(formatted !== "");
+  };
+
+  const handlePay = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `${API_BASE_URL}/api/v1/cliente/carteira/carregar/referencia-multicaixa`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: API_KEY,
+          },
+          body: `montante=${encodeURIComponent(totalPay)}`,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || data.tipo !== "Sucesso") {
+        throw new Error(data.message || "Erro ao carregar a conta");
+      }
+
+      router.push({
+        pathname: "/(tabs)/referencia-pagamento",
+        params: {
+          valor: totalPay,
+          entidade: data.info.entidade,
+          referencia: data.info.referenca,
+        },
+      });
+    } catch (error) {
+      Alert.alert("Erro", "Um erro ocorreu ao carregar a conta. Por favor, tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#1E579C" />
+          <ArrowLeft size={24} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Carregar Conta</Text>
         <View style={styles.headerSpacer} />
@@ -139,7 +137,7 @@ const handlePay = async () => {
               <View style={styles.resumoItem}>
                 <Text style={styles.resumoLabelTotal}>Total a pagar</Text>
                 <Text style={styles.resumoValueTotal}>
-                  KZ {totalPagar.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  KZ {totalPay.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </Text>
               </View>
             </View>

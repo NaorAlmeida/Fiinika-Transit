@@ -231,7 +231,7 @@ export default function NovoFreteScreen() {
         text2: 'Novo pedido criado com sucesso!',
       });
 
-      router.replace('/(tabs)/fretes');
+      router.push('/(tabs)/fretes');
     } catch (error) {
       Alert.alert("Erro", "Erro ao criar frete.");
     } finally {

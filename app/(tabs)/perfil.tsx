@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,6 @@ import {
   Phone,
   Mail,
   MapPin,
-  Camera,
   CreditCard,
   BookText,
   Building,
@@ -46,6 +45,7 @@ export default function PerfilScreen() {
       });
       const data = await response.json();
       setProfileData(data.info || {});
+      
     } catch (error) {
       setHasError(true);
       console.error('Erro ao buscar perfil:', error);
@@ -92,7 +92,7 @@ export default function PerfilScreen() {
               styles.statusBadge,
               {
                 backgroundColor:
-                  profileData.estado === 'Activo' ? '#28A74515' : '#DC354515',
+                  profileData.estado != 'Activo' ? '#28A74515' : '#DC354515',
               },
             ]}
           >
@@ -101,11 +101,11 @@ export default function PerfilScreen() {
                 styles.statusText,
                 {
                   color:
-                    profileData.estado === 'Autorizado' ? '#28A745' : '#DC3545',
+                    profileData.estado != 'Autorizado' ? '#28A745' : '#DC3545',
                 },
               ]}
             >
-              {profileData.estado}
+              {profileData.estado || 'Activo'}
             </Text>
           </View>
         </View>
@@ -252,9 +252,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: '#F0F4F8',
     alignItems: 'center',
     justifyContent: 'center',
@@ -286,7 +286,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontFamily: 'Barlow-Medium',
-    fontWeight: 'bold',
   },
   infoCard: {
     backgroundColor: '#FFFFFF',

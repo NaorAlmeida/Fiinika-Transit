@@ -1,61 +1,89 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Clock, Copy, CircleCheck as CheckCircle } from 'lucide-react-native';
+import * as Clipboard from "expo-clipboard";
+import { Clock, Copy, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
+import { useBalance } from '@/context/balanceContext';
+import { formatCurrency } from '@/utils/helpers';
+
+interface PaymentData {
+  valor: string;
+  entidade: string;
+  referencia: string;
+}
 
 export default function ReferenciaPagamentoScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutos em segundos
+
+  const [finalBalance, setFinalBalance] = useState(0);
   const [copied, setCopied] = useState(false);
+  const { balance, setBalance } = useBalance();
+  const [showPopup, setShowPopup] = useState(false);
 
-  const valor = params.valor || '5.000';
-  const entidade = '334';
-  const referencia = '334791';
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  const paymentData: Partial<PaymentData> = {
+    valor: typeof params.valor === "string" ? params.valor : undefined,
+    entidade: typeof params.entidade === "string" ? params.entidade : undefined,
+    referencia: typeof params.referencia === "string" ? params.referencia : undefined,
   };
 
-  const handleCopyReference = () => {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  if (!paymentData.valor || !paymentData.entidade || !paymentData.referencia) {
+    router.push('/(tabs)');
+    return null;
+  }
+
+  const handleCopyReference = async () => {
+    if (paymentData.referencia) {
+      await Clipboard.setStringAsync(paymentData.referencia);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
-  const handleFinalize = () => {
-    router.push('/(tabs)/carteira');
-  };
+  function formatCurrency(value: string | number): string {
+    const numericValue = typeof value === "string" ? parseFloat(value) : value;
+
+    if (isNaN(numericValue)) return "KZ 0,00";
+
+    return new Intl.NumberFormat("pt-AO", {
+      style: "currency",
+      currency: "AOA",
+      minimumFractionDigits: 2,
+    }).format(numericValue);
+  }
+
+const handleFinalize = async () => {
+  try {
+    const desconto = 150;
+    const final = Number(paymentData.valor) - desconto;
+
+    const newBalance = balance + final;
+    setFinalBalance(final); 
+    setBalance(newBalance);
+    setShowPopup(true);
+
+    console.log(`Novo saldo: ${formatCurrency(newBalance)}`, balance, paymentData.valor);
+
+    setTimeout(() => {
+      setShowPopup(false);
+      router.push('/(tabs)');
+    }, 2000);
+  } catch (e) {
+    console.error("Erro ao salvar", e);
+  }
+};
+
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#1E579C" />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Referência de Pagamento</Text>
-        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.valueSection}>
           <Text style={styles.valueLabel}>Valor</Text>
-          <Text style={styles.valueAmount}>KZ {valor}</Text>
+          <Text style={styles.valueAmount}>{formatCurrency(paymentData.valor)}</Text>
         </View>
 
         <View style={styles.entitySection}>
@@ -63,17 +91,17 @@ export default function ReferenciaPagamentoScreen() {
           <View style={styles.warningCard}>
             <Clock size={16} color="#856404" />
             <Text style={styles.warningText}>
-              Espere por 5 minutos antes de realizar o pagamento para que referência 
+              Espere por 5 minutos antes de realizar o pagamento para que referência
               reflita no sistema da EMIS.
             </Text>
           </View>
-          <Text style={styles.entityNumber}>{entidade}</Text>
+          <Text style={styles.entityNumber}>{paymentData.entidade}</Text>
         </View>
 
         <View style={styles.referenceSection}>
           <View style={styles.referenceHeader}>
             <Text style={styles.sectionLabel}>Referência</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.copyButton}
               onPress={handleCopyReference}
             >
@@ -87,21 +115,12 @@ export default function ReferenciaPagamentoScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.referenceNumber}>{referencia}</Text>
-        </View>
-
-        <View style={styles.timerSection}>
-          <View style={styles.timerCard}>
-            <Clock size={20} color="#FFC107" />
-            <Text style={styles.timerText}>
-              Tempo restante: {formatTime(timeLeft)}
-            </Text>
-          </View>
+          <Text style={styles.referenceNumber}>{paymentData.referencia}</Text>
         </View>
 
         <View style={styles.instructionsSection}>
           <Text style={styles.instructionsTitle}>Instruções de carregamento</Text>
-          
+
           <View style={styles.instructionsList}>
             <View style={styles.instructionItem}>
               <View style={styles.instructionNumber}>
@@ -150,13 +169,23 @@ export default function ReferenciaPagamentoScreen() {
           </View>
         </View>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.finalizeButton}
           onPress={handleFinalize}
         >
           <Text style={styles.finalizeButtonText}>Finalizar (já paguei)</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal visible={showPopup} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.overlay}>
+          <View style={styles.popup}>
+            <CheckCircle size={100} color="#fff" fill="#4BB543" />
+            <Text style={styles.popupTitle}>Pagamento concluído!</Text>
+            <Text style={styles.popupText}> {formatCurrency(finalBalance)} adicionados na sua conta.</Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -171,11 +200,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingVertical: 16,
     paddingTop: 40,
-  },
-  backButton: {
-    padding: 8,
   },
   headerTitle: {
     flex: 1,
@@ -183,9 +209,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Barlow-SemiBold',
     color: '#000000',
     textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 40,
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
@@ -206,7 +230,7 @@ const styles = StyleSheet.create({
   },
   valueAmount: {
     fontSize: 32,
-    fontFamily: 'Barlow-Bold', 
+    fontFamily: 'Barlow-Bold',
     color: '#000000',
   },
   entitySection: {
@@ -280,23 +304,6 @@ const styles = StyleSheet.create({
     color: '#000000',
     textAlign: 'center',
   },
-  timerSection: {
-    marginBottom: 24,
-  },
-  timerCard: {
-    backgroundColor: '#FFF3CD',
-    borderRadius: 8,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timerText: {
-    fontSize: 16,
-    fontFamily: 'Barlow-SemiBold',
-    color: '#856404',
-    marginLeft: 8,
-  },
   instructionsSection: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -324,6 +331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+
   },
   instructionNumberText: {
     fontSize: 12,
@@ -348,5 +356,35 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Barlow-Bold',
     color: '#FFFFFF',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  popup: {
+    alignContent: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    padding: 30,
+    marginHorizontal: 20,
+    height: 260,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowRadius: 6,
+  },
+  popupTitle: {
+    textAlign: "center",
+    marginTop: 10,
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#333",
+  },
+  popupText: {
+    textAlign: "center",
+    marginTop: 10,
+    fontSize: 16,
+    color: "#333",
   },
 });

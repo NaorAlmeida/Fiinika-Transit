@@ -4,9 +4,9 @@ import {
   StyleSheet, 
   TouchableOpacity 
 } from 'react-native';
+import { useBalance } from '@/context/balanceContext';
 import { useRouter } from 'expo-router';
-import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+import { DrawerActions, useNavigation } from '@react-navigation/native';
 import { WebView } from 'react-native-webview';
 import { Menu, Eye, EyeOff, Plus, CreditCard } from 'lucide-react-native';
 import { useState, useRef, useMemo, useEffect } from 'react';
@@ -20,6 +20,8 @@ import {
   Barlow_600SemiBold, 
   Barlow_700Bold 
 } from '@expo-google-fonts/barlow';
+import { formatCurrency } from '@/utils/helpers';
+
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -33,6 +35,7 @@ export default function HomeScreen() {
     'Barlow-Bold': Barlow_700Bold,
   });
 
+  const { balance } = useBalance();  
   const [showBalance, setShowBalance] = useState(true);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -42,7 +45,7 @@ export default function HomeScreen() {
     navigation.dispatch(DrawerActions.openDrawer());
   };
 
-  const saldoAtual = 237500.0;
+
 
   useEffect(() => {
     (async () => {
@@ -59,6 +62,7 @@ export default function HomeScreen() {
       });
     })();
   }, []);
+
 
 
   const mapHtml =  location ? `
@@ -80,7 +84,9 @@ export default function HomeScreen() {
       <script>
         const coords = [${location.lat}, ${location.lng}];
         
-        const map = L.map('map').setView(coords, 15);
+        const map = L.map('map', {
+          zoomControl: false,  
+        }).setView(coords, 15);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
@@ -91,6 +97,7 @@ export default function HomeScreen() {
         marker.bindPopup('Você está aqui').openPopup();
 
         map.scrollWheelZoom.disable();
+        map.dragging.enable();
         map.doubleClickZoom.enable();
       </script>
     </body>
@@ -118,7 +125,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <Text style={styles.balanceValue}>
-            {showBalance ? `${saldoAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} KZ` : '••••••• KZ'}
+            { showBalance ? `${formatCurrency(balance)}` : '•••••••'}
           </Text>
         </View>
       </View>
@@ -205,7 +212,8 @@ const styles = StyleSheet.create({
   balanceCard: {
     backgroundColor: '#1E579C',
     borderRadius: 16,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 25,
   },
   balanceHeader: {
     flexDirection: 'row',

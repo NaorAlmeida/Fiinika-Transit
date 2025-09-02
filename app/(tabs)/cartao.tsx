@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, User, Hash, Phone, MapPin, QrCode } from 'lucide-react-native';
+import { ArrowLeft, User, Hash, Phone, MapPin } from 'lucide-react-native';
 
 export default function CartaoScreen() {
   const router = useRouter();
@@ -75,7 +75,10 @@ export default function CartaoScreen() {
 
               <View style={styles.qrSection}>
                 <View style={styles.qrContainer}>
-                  <QrCode size={80} color="#1E579C" />
+                  <Image
+                    source={require('../../assets/images/qrcode.jpeg')}
+                    style={styles.qrImage}
+                  />
                 </View>
                 <Text style={styles.qrText}>Código de Validação</Text>
               </View>
@@ -85,44 +88,6 @@ export default function CartaoScreen() {
               <Text style={styles.validUntil}>Válido até: 31/12/2024</Text>
               <Text style={styles.cardNumber}>Card #FT-{userData.numeroId}</Text>
             </View>
-          </View>
-        </View>
-
-        <View style={styles.actionsSection}>
-          <TouchableOpacity style={styles.downloadButton}>
-            <Text style={styles.downloadButtonText}>Baixar Cartão</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.shareButton}>
-            <Text style={styles.shareButtonText}>Compartilhar</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.infoSection}>
-          <Text style={styles.infoSectionTitle}>Como usar o cartão</Text>
-          <View style={styles.instructionItem}>
-            <View style={styles.instructionNumber}>
-              <Text style={styles.instructionNumberText}>1</Text>
-            </View>
-            <Text style={styles.instructionText}>
-              Apresente este cartão aos transportadores para validação
-            </Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <View style={styles.instructionNumber}>
-              <Text style={styles.instructionNumberText}>2</Text>
-            </View>
-            <Text style={styles.instructionText}>
-              O QR code contém suas informações de identificação
-            </Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <View style={styles.instructionNumber}>
-              <Text style={styles.instructionNumberText}>3</Text>
-            </View>
-            <Text style={styles.instructionText}>
-              Mantenha o cartão sempre atualizado com suas informações
-            </Text>
           </View>
         </View>
       </ScrollView>
@@ -230,17 +195,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Barlow-SemiBold',
     color: '#333333',
   },
+  qrContainer: {
+    marginBottom: 20,
+  },
+  qrImage: {
+    width: 200,
+    height: 200,
+    overflow: 'hidden',
+  },
   qrSection: {
     alignItems: 'center',
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
-  },
-  qrContainer: {
-    backgroundColor: '#F8F9FA',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
   },
   qrText: {
     fontSize: 12,

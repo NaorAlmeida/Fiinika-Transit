@@ -11,6 +11,7 @@ import { useRouter, usePathname } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { Home, Truck, Wallet, User, LogOut } from 'lucide-react-native';
 import { API_BASE_URL, API_KEY } from '@/utils/constants';
+import { BalanceProvider } from '@/context/balanceContext';
 
 function CustomDrawerContent(props: any) {
   const router = useRouter();
@@ -85,104 +86,106 @@ function CustomDrawerContent(props: any) {
 
 export default function TabLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Drawer
-        drawerContent={CustomDrawerContent}
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#1E579C',
-          },
-          headerTintColor: '#FFFFFF',
-          headerTitleStyle: {
-            fontFamily: 'Barlow-SemiBold',
-            fontSize: 18,
-          },
-          drawerStyle: {
-            backgroundColor: '#FFFFFF',
-            width: 280,
-          },
-          headerLeft: () => null,
-        }}
-      >
-        <Drawer.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            headerShown: false,
+    <BalanceProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Drawer
+          drawerContent={CustomDrawerContent}
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: '#1E579C',
+            },
+            headerTintColor: '#FFFFFF',
+            headerTitleStyle: {
+              fontFamily: 'Barlow-SemiBold',
+              fontSize: 18,
+            },
+            drawerStyle: {
+              backgroundColor: '#FFFFFF',
+              width: 280,
+            },
+            headerLeft: () => null,
           }}
-        />
-        <Drawer.Screen
-          name="fretes"
-          options={{
-            title: 'Meus Fretes',
-            headerShown: false,
-          }}
-        />
-        <Drawer.Screen
-          name="carteira"
-          options={{
-            title: 'Carteira',
-            headerShown: false,
-          }}
-        />
-        <Drawer.Screen
-          name="perfil"
-          options={{
-            title: 'Meu Perfil',
-            headerShown: false,
-          }}
-        />
-        <Drawer.Screen
-          name="novo-frete"
-          options={{
-            title: 'Novo Frete',
-            headerShown: false,
-            drawerItemStyle: { display: 'none' },
-          }}
-        />
-        <Drawer.Screen
-          name="editar-perfil"
-          options={{
-            title: 'Editar Perfil',
-            headerShown: false,
-            drawerItemStyle: { display: 'none' },
-          }}
-        />
-        <Drawer.Screen
-          name="cartao"
-          options={{
-            title: 'Cartão de Validação',
-            headerShown: false,
-            drawerItemStyle: { display: 'none' },
-          }}
-        />
-        <Drawer.Screen
-          name="detalhes-frete"
-          options={{
-            title: 'Detalhes do Frete',
-            headerShown: false,
-            drawerItemStyle: { display: 'none' },
-          }}
-        />
-        <Drawer.Screen
-          name="carregar-conta"
-          options={{
-            title: 'Carregar Conta',
-            headerShown: false,
-            drawerItemStyle: { display: 'none' },
-          }}
-        />
-        <Drawer.Screen
-          name="referencia-pagamento"
-          options={{
-            title: 'Referência de Pagamento',
-            headerShown: false,
-            drawerItemStyle: { display: 'none' },
-          }}
-        />
-      </Drawer>
-      <Toast />
-    </GestureHandlerRootView>
+        >
+          <Drawer.Screen
+            name="index"
+            options={{
+              title: 'Home',
+              headerShown: false,
+            }}
+          />
+          <Drawer.Screen
+            name="fretes"
+            options={{
+              title: 'Meus Fretes',
+              headerShown: false,
+            }}
+          />
+          <Drawer.Screen
+            name="carteira"
+            options={{
+              title: 'Carteira',
+              headerShown: false,
+            }}
+          />
+          <Drawer.Screen
+            name="perfil"
+            options={{
+              title: 'Meu Perfil',
+              headerShown: false,
+            }}
+          />
+          <Drawer.Screen
+            name="novo-frete"
+            options={{
+              title: 'Novo Frete',
+              headerShown: false,
+              drawerItemStyle: { display: 'none' },
+            }}
+          />
+          <Drawer.Screen
+            name="editar-perfil"
+            options={{
+              title: 'Editar Perfil',
+              headerShown: false,
+              drawerItemStyle: { display: 'none' },
+            }}
+          />
+          <Drawer.Screen
+            name="cartao"
+            options={{
+              title: 'Cartão de Validação',
+              headerShown: false,
+              drawerItemStyle: { display: 'none' },
+            }}
+          />
+          <Drawer.Screen
+            name="detalhes-frete"
+            options={{
+              title: 'Detalhes do Frete',
+              headerShown: false,
+              drawerItemStyle: { display: 'none' },
+            }}
+          />
+          <Drawer.Screen
+            name="carregar-conta"
+            options={{
+              title: 'Carregar Conta',
+              headerShown: false,
+              drawerItemStyle: { display: 'none' },
+            }}
+          />
+          <Drawer.Screen
+            name="referencia-pagamento"
+            options={{
+              title: 'Referência de Pagamento',
+              headerShown: false,
+              drawerItemStyle: { display: 'none' },
+            }}
+          />
+        </Drawer>
+        <Toast />
+      </GestureHandlerRootView>
+    </BalanceProvider>
   );
 }
 

@@ -1,112 +1,89 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useState } from 'react';
-import { Alert } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { ArrowLeft, MapPin, Package, Clock, DollarSign, CircleCheck as CheckCircle, Circle, Truck, Calendar, User, Camera, FileText, QrCode } from 'lucide-react-native';
+import { ArrowLeft, CameraOff, Clock, CircleCheck as CheckCircle, Circle, Calendar, User, Camera, FileText, Check, CircleAlert } from 'lucide-react-native';
+import { API_BASE_URL, API_KEY } from '@/utils/constants';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function DetalhesFrete() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const { id } = useLocalSearchParams();
   const [activeTab, setActiveTab] = useState('geral');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [uploadedPhoto, setUploadedPhoto] = useState(null);
   const [uploadedDocument, setUploadedDocument] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [freightData, setFreightData] = useState<any>({});
+  const [hasError, setHasError] = useState(false);
 
-  // Dados mockados do frete
-  const freteData = {
-    id: params.id || '1',
-    origem: 'São Paulo, SP',
-    destino: 'Rio de Janeiro, RJ',
-    valor: '2.500 KZ',
-    status: 'Em trânsito',
-    data: '15/01/2024',
-    tiposCarga: 'Equipamentos industriais',
-    peso: '15 toneladas',
-    prazo: '2 dias',
-    observacoes: 'Carga frágil, manuseio cuidadoso'
+  const fetchData = async () => {
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/frete/dados-pedido-frete/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `${API_KEY}`,
+        },
+      });
+      const data = await response.json();
+      setFreightData(data.info || {});
+      setLoading(false);
+
+    } catch (error) {
+      setHasError(true);
+      setLoading(false);
+      console.error('Erro ao buscar perfil:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const detalhesGerais = {
-    precoFinal: '6.500 KZ',
-    designacao: 'Transporte de equipamentos industriais',
-    propostaPreco: '6.800 KZ',
-    pontoPartida: 'Luanda, Talatona',
-    pontoDescarga: 'Benguela, Centro',
-    peso: '15 toneladas',
-    tipoMercadoria: 'Equipamentos industriais',
-    dataPrevista: '25/01/2024',
-    servicoRecorrente: 'Não',
-    recorrencia: 'N/A',
-    outrosServicos: 'Seguro de carga',
-    transportador: 'Transportador 3',
-    comentarios: [
-      { id: 1, autor: 'Cliente', texto: 'Carga muito frágil, cuidado no manuseio', data: '15/01/2024 10:30' },
-      { id: 2, autor: 'Transportador', texto: 'Entendido, faremos o transporte com cuidado especial', data: '15/01/2024 11:15' }
-    ]
-  };
+  useFocusEffect(
+    useCallback(() => {
+      setFreightData({});
+      fetchData();
+    }, [id])
+  );
 
   const acompanhamento = [
     {
       titulo: 'Início do frete',
       subtitulo: 'veículo em direcção ao ponto de carregamento',
-      status: 'Completo',
+      estado: 'Completo',
       data: '12:00H | 20/09/2024'
     },
     {
       titulo: 'Recepção de carga confirmada',
       subtitulo: '',
-      status: 'Pendente',
+      estado: 'Pendente',
       data: ''
     },
     {
       titulo: 'Entrega da mercadoria',
       subtitulo: '',
-      status: 'Pendente',
+      estado: 'Pendente',
       data: ''
     }
   ];
 
   const progressSteps = [
     { title: 'Pedido criado', completed: true },
-    { title: 'Processado', completed: true },
-    { title: 'Em trânsito', completed: true },
+    { title: 'Processado', completed: false },
+    { title: 'Em trânsito', completed: false },
     { title: 'Entregue', completed: false }
   ];
 
-  const transportadores = [
-    {
-      id: 1,
-      nome: 'Transportador 1',
-      data: '12/09/2024',
-      valor: '6.800 KZ',
-      status: 'Participante'
-    },
-    {
-      id: 2,
-      nome: 'Transportador 2',
-      data: '12/09/2024',
-      valor: '7.200 KZ',
-      status: 'Participante'
-    },
-    {
-      id: 3,
-      nome: 'Transportador 3',
-      data: '12/09/2024',
-      valor: '6.500 KZ',
-      status: 'Escolhido'
-    }
-  ];
-
-  const tempoRestante = '2h 45min';
+  const tempoRestante = '24h';
 
   const handlePhotoUpload = async () => {
     try {
       setUploadingPhoto(true);
-      
+
       // Solicitar permissões
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
@@ -138,7 +115,7 @@ export default function DetalhesFrete() {
   const handleDocumentUpload = async () => {
     try {
       setUploadingDocument(true);
-      
+
       // Abrir seletor de documentos
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*'],
@@ -157,66 +134,81 @@ export default function DetalhesFrete() {
       setUploadingDocument(false);
     }
   };
+  
+const handleChooseProposal = (id: number) => {
+  setFreightData(prev => ({
+    ...prev,
+    propostas: prev.propostas.map(p =>
+      p.id === id
+        ? { ...p, estado: "Escolhido" } 
+        : { ...p, estado: "Participante" } 
+    )
+  }));
+};
+
 
   const mapHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Rota do Frete</title>
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <style>
-        body { margin: 0; padding: 0; }
-        #map { height: 100vh; width: 100vw; }
-      </style>
-    </head>
-    <body>
-      <div id="map"></div>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-      <script>
-        // Coordenadas de São Paulo (origem)
-        const origemCoords = [-23.5505, -46.6333];
-        // Coordenadas do Rio de Janeiro (destino)
-        const destinoCoords = [-22.9068, -43.1729];
-        
-        // Inicializar o mapa centralizado entre origem e destino
-        const centerLat = (origemCoords[0] + destinoCoords[0]) / 2;
-        const centerLng = (origemCoords[1] + destinoCoords[1]) / 2;
-        
-        const map = L.map('map').setView([centerLat, centerLng], 6);
-        
-        // Adicionar tiles do OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors',
-          maxZoom: 19
-        }).addTo(map);
-        
-        // Adicionar marcador de origem
-        const origemMarker = L.marker(origemCoords).addTo(map);
-        origemMarker.bindPopup('Origem: São Paulo, SP').openPopup();
-        
-        // Adicionar marcador de destino
-        const destinoMarker = L.marker(destinoCoords).addTo(map);
-        destinoMarker.bindPopup('Destino: Rio de Janeiro, RJ');
-        
-        // Adicionar linha conectando origem e destino
-        const routeLine = L.polyline([origemCoords, destinoCoords], {
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rota do Frete</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { height: 100vh; width: 100vw; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Origem: Luanda, Benfica
+    const origemCoords = [-8.9789, 13.1547];
+    // Destino: Luanda, Talatona
+    const destinoCoords = [-8.9186, 13.1783];
+
+    const map = L.map('map', {
+      zoomControl: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: true,
+      dragging: true,
+      touchZoom: true
+    }).setView(origemCoords, 13);
+
+    // Adicionar tiles do OSM
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Marcadores
+    L.marker(origemCoords).addTo(map).bindPopup("Origem: Luanda, Maianga");
+    L.marker(destinoCoords).addTo(map).bindPopup("Destino: Luanda, Viana");
+
+    // Chamada à API de rotas
+    const apiKey = "5b3ce3597851110001cf62489d33ec5d771142b09952aed755e219c8";
+    const url = \`https://api.openrouteservice.org/v2/directions/driving-car?api_key=\${apiKey}&start=\${origemCoords[1]},\${origemCoords[0]}&end=\${destinoCoords[1]},\${destinoCoords[0]}\`;
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        const coords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+        const routeLine = L.polyline(coords, {
           color: '#1E579C',
-          weight: 3,
-          opacity: 0.8
+          weight: 4,
+          opacity: 0.9
         }).addTo(map);
-        
-        // Ajustar zoom para mostrar toda a rota
+
+        // Ajustar zoom para a rota
         map.fitBounds(routeLine.getBounds(), { padding: [20, 20] });
-        
-        // Prevenir zoom com scroll do mouse
-        map.scrollWheelZoom.disable();
-        map.doubleClickZoom.enable();
-      </script>
-    </body>
-    </html>
-  `;
+      })
+      .catch(err => console.error("Erro ao buscar rota:", err));
+  </script>
+</body>
+</html>
+`;
 
   const handleCancelFrete = () => {
     Alert.alert(
@@ -252,390 +244,396 @@ export default function DetalhesFrete() {
         <Text style={styles.headerTitle}>Detalhes do Frete</Text>
         <View style={styles.headerSpacer} />
       </View>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.progressSection}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.sectionTitle}>Acompanhar Progresso</Text>
-            <View style={styles.statusIndicator}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusText}>Em trânsito</Text>
+
+      {loading && (
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingTop: 100,
+          }}
+        >
+          <ActivityIndicator size="large" color="#1E579C" />
+          <Text style={{ color: '#666666', marginTop: 8 }}>
+            A carregar...
+          </Text>
+        </View>
+      )}
+
+      {!loading && Object.keys(freightData).length > 0 && (
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.progressSection}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.sectionTitle}>Acompanhar Progresso</Text>
             </View>
-          </View>
-          <View style={styles.progressTimeline}>
-            {progressSteps.map((step, index) => (
-              <View key={index} style={styles.timelineItem}>
-                <View style={styles.timelineIndicator}>
-                  <View style={[
-                    styles.timelineCircle,
-                    { backgroundColor: step.completed ? '#28A745' : '#E5E5E5' }
-                  ]}>
-                    {step.completed && (
-                      <CheckCircle size={16} color="#FFFFFF" />
+            <View style={styles.progressTimeline}>
+              {progressSteps.map((step, index) => (
+                <View key={index} style={styles.timelineItem}>
+                  <View style={styles.timelineIndicator}>
+                    <View style={[
+                      styles.timelineCircle,
+                      { backgroundColor: step.completed ? '#28A745' : '#E5E5E5' }
+                    ]}>
+                      {step.completed && (
+                        <Check size={16} color="#FFFFFF" />
+                      )}
+                    </View>
+                    {index < progressSteps.length - 1 && (
+                      <View style={[
+                        styles.timelineLine,
+                        { backgroundColor: step.completed ? '#28A745' : '#E5E5E5' }
+                      ]} />
                     )}
                   </View>
-                  {index < progressSteps.length - 1 && (
-                    <View style={[
-                      styles.timelineLine,
-                      { backgroundColor: step.completed ? '#28A745' : '#E5E5E5' }
-                    ]} />
-                  )}
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text style={[
-                    styles.timelineTitle,
-                    { color: step.completed ? '#28A745' : '#666666' }
-                  ]}>
-                    {step.title}
-                  </Text>
-                  <Text style={styles.timelineSubtitle}>
-                    {step.completed ? 'Concluído' : 'Aguardando'}
-                  </Text>
-                  {step.completed && (
-                    <Text style={styles.timelineTime}>
-                      {index === 0 ? '15/01 - 08:30' : index === 1 ? '15/01 - 10:15' : '15/01 - 14:20'}
+                  <View style={styles.timelineContent}>
+                    <Text style={[
+                      styles.timelineTitle,
+                      { color: step.completed ? '#28A745' : '#666666' }
+                    ]}>
+                      {step.title}
                     </Text>
-                  )}
+                    <Text style={styles.timelineSubtitle}>
+                      {step.completed ? 'Concluído' : 'Aguardando'}
+                    </Text>
+                  </View>
                 </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.leilaoSection}>
+            <View style={styles.leilaoHeader}>
+              <Text style={styles.sectionTitle}>Resultado do Leilão</Text>
+              <View style={styles.tempoContainer}>
+                <Clock size={16} color="#FFC107" />
+                <Text style={styles.tempoText}>Tempo restante: {tempoRestante}</Text>
+              </View>
+            </View>
+
+            {freightData.propostas?.map((prop: any) => (
+              <View key={prop.id} style={styles.transportadorCard}>
+                <View style={styles.transportadorHeader}>
+                  <View style={styles.transportadorInfo}>
+                    <User size={20} color="#1E579C" />
+                    <Text style={styles.transportadorNome}>{prop.operador.nome}</Text>
+                  </View>
+                  <View style={[
+                    styles.statusBadge,
+                    {
+                      backgroundColor: prop.estado === 'Escolhido'
+                        ? '#28A74515'
+                        : '#1E579C15'
+                    }
+                  ]}>
+                    <Text style={[
+                      styles.statusText,
+                      {
+                        color: prop.estado === 'Escolhido'
+                          ? '#28A745'
+                          : '#1E579C'
+                      }
+                    ]}>
+                      {prop.estado}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.transportadorDetails}>
+                  <View style={styles.detailItem}>
+                    <Calendar size={14} color="#666666" />
+                    <Text style={styles.detailText}>{prop.dataFrete}</Text>
+                  </View>
+                  <Text style={styles.valorText}>{prop.valor}</Text>
+                </View>
+                {prop.estado === 'Participante' && (
+                  <TouchableOpacity style={styles.escolherButton} onPress={() => handleChooseProposal(prop.id)}>
+                    <Text style={styles.escolherButtonText}>Escolher</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
-        </View>
-        <View style={styles.freteInfoSection}>
-          <View style={styles.routeHeader}>
-            <MapPin size={20} color="#1E579C" />
-            <Text style={styles.routeText}>
-              {freteData.origem} → {freteData.destino}
-            </Text>
-          </View>
-          <View style={styles.infoGrid}>
-            <View style={styles.infoItem}>
-              <Package size={16} color="#666666" />
-              <Text style={styles.infoLabel}>Tipo de Carga</Text>
-              <Text style={styles.infoValue}>{freteData.tiposCarga}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Truck size={16} color="#666666" />
-              <Text style={styles.infoLabel}>Peso</Text>
-              <Text style={styles.infoValue}>{freteData.peso}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Clock size={16} color="#666666" />
-              <Text style={styles.infoLabel}>Prazo</Text>
-              <Text style={styles.infoValue}>{freteData.prazo}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <DollarSign size={16} color="#666666" />
-              <Text style={styles.infoLabel}>Valor</Text>
-              <Text style={styles.infoValue}>{freteData.valor}</Text>
-            </View>
-          </View>
-        </View>
-        <View style={styles.leilaoSection}>
-          <View style={styles.leilaoHeader}>
-            <Text style={styles.sectionTitle}>Resultado do Leilão</Text>
-            <View style={styles.tempoContainer}>
-              <Clock size={16} color="#FFC107" />
-              <Text style={styles.tempoText}>Tempo restante: {tempoRestante}</Text>
-            </View>
-          </View>
-          {transportadores.map((transportador) => (
-            <View key={transportador.id} style={styles.transportadorCard}>
-              <View style={styles.transportadorHeader}>
-                <View style={styles.transportadorInfo}>
-                  <User size={20} color="#1E579C" />
-                  <Text style={styles.transportadorNome}>{transportador.nome}</Text>
-                </View>
-                <View style={[
-                  styles.statusBadge,
-                  { 
-                    backgroundColor: transportador.status === 'Escolhido' 
-                      ? '#28A74515' 
-                      : '#1E579C15' 
-                  }
-                ]}>
-                  <Text style={[
-                    styles.statusText,
-                    { 
-                      color: transportador.status === 'Escolhido' 
-                        ? '#28A745' 
-                        : '#1E579C' 
-                    }
-                  ]}>
-                    {transportador.status}
+          <View style={styles.tabsSection}>
+            <View style={styles.tabsContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.tabsScrollView}
+                contentContainerStyle={{ paddingRight: 16 }}
+              >
+                <TouchableOpacity
+                  style={[styles.tab, activeTab === 'geral' && styles.activeTab]}
+                  onPress={() => setActiveTab('geral')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'geral' && styles.activeTabText]}>
+                    Informação geral
                   </Text>
-                </View>
-              </View>
-              <View style={styles.transportadorDetails}>
-                <View style={styles.detailItem}>
-                  <Calendar size={14} color="#666666" />
-                  <Text style={styles.detailText}>{transportador.data}</Text>
-                </View>
-                <Text style={styles.valorText}>{transportador.valor}</Text>
-              </View>
-              {transportador.status === 'Participante' && (
-                <TouchableOpacity style={styles.escolherButton}>
-                  <Text style={styles.escolherButtonText}>Escolher</Text>
                 </TouchableOpacity>
-              )}
+                <TouchableOpacity
+                  style={[styles.tab, activeTab === 'acompanhamento' && styles.activeTab]}
+                  onPress={() => setActiveTab('acompanhamento')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'acompanhamento' && styles.activeTabText]}>
+                    Acompanhamento
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tab, activeTab === 'confirmacao' && styles.activeTab]}
+                  onPress={() => setActiveTab('confirmacao')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'confirmacao' && styles.activeTabText]}>
+                    Confirmação
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
             </View>
-          ))}
-        </View>
-        <View style={styles.tabsSection}>
-          <View style={styles.tabsContainer}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.tabsScrollView}
-              contentContainerStyle={{ paddingRight: 16 }}
-            >
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'geral' && styles.activeTab]}
-                onPress={() => setActiveTab('geral')}
-              >
-                <Text style={[styles.tabText, activeTab === 'geral' && styles.activeTabText]}>
-                  Informação geral
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'acompanhamento' && styles.activeTab]}
-                onPress={() => setActiveTab('acompanhamento')}
-              >
-                <Text style={[styles.tabText, activeTab === 'acompanhamento' && styles.activeTabText]}>
-                  Acompanhamento
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.tab, activeTab === 'confirmacao' && styles.activeTab]}
-                onPress={() => setActiveTab('confirmacao')}
-              >
-                <Text style={[styles.tabText, activeTab === 'confirmacao' && styles.activeTabText]}>
-                  Confirmação
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-          <View style={styles.tabContent}>
-            {activeTab === 'geral' && (
-              <View style={styles.geralContent}>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Preço final do frete</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.precoFinal}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Designação</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.designacao}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Proposta de preço</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.propostaPreco}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Ponto de partida</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.pontoPartida}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Ponto de descarga</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.pontoDescarga}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Peso</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.peso}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Tipo de mercadoria</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.tipoMercadoria}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Data prevista para frete</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.dataPrevista}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Serviço recorrente</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.servicoRecorrente}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Recorrência</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.recorrencia}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Outros serviços</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.outrosServicos}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoRowLabel}>Transportador</Text>
-                  <Text style={styles.infoRowValue}>{detalhesGerais.transportador}</Text>
-                </View>
-                <View style={styles.photoSection}>
-                  <Text style={styles.photoSectionTitle}>Foto da mercadoria</Text>
-                  <TouchableOpacity 
-                    style={[styles.addPhotoButton, uploadingPhoto && styles.uploadingButton]}
-                    onPress={handlePhotoUpload}
-                    disabled={uploadingPhoto}
-                  >
-                    <Camera size={20} color="#1E579C" />
-                    <Text style={styles.addPhotoText}>
-                      {uploadingPhoto ? 'Carregando...' : 'Adicionar foto'}
+            <View style={styles.tabContent}>
+              {activeTab === 'geral' && (
+                <View style={styles.geralContent}>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Preço final do frete</Text>
+                    <Text style={styles.infoRowValue}>{freightData.precoFinal || '0,0'} Kz</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Designação</Text>
+                    <Text style={styles.infoRowValue}>{freightData.designacao || 'Não especificado'}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Proposta de preço</Text>
+                    <Text style={styles.infoRowValue}>{freightData.valorProposta} Kz</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Ponto de partida</Text>
+                    <Text style={styles.infoRowValue}>{freightData.origem}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Ponto de descarga</Text>
+                    <Text style={styles.infoRowValue}>{freightData.destino}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Peso</Text>
+                    <Text style={styles.infoRowValue}>{freightData.pesoKg} Kg</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Tipo de mercadoria</Text>
+                    <Text style={styles.infoRowValue}>{freightData.tipoMercadorias}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Data prevista para frete</Text>
+                    <Text style={styles.infoRowValue}>{freightData.dataPrevista}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Serviço recorrente</Text>
+                    <Text style={styles.infoRowValue}>{freightData.servicoRecorrente}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Recorrência</Text>
+                    <Text style={styles.infoRowValue}>
+                      {freightData.recorrencia || 0}
                     </Text>
-                  </TouchableOpacity>
-                  
-                  {uploadingPhoto ? (
-                    <View style={styles.loadingContainer}>
-                      <View style={styles.loadingSpinner} />
-                      <Text style={styles.loadingText}>Carregando foto...</Text>
-                    </View>
-                  ) : uploadedPhoto ? (
-                    <View style={styles.uploadedFileContainer}>
-                      <View style={styles.uploadedFileInfo}>
-                        <Camera size={20} color="#28A745" />
-                        <Text style={styles.uploadedFileName}>Foto carregada</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Outros serviços</Text>
+                    <Text style={styles.infoRowValue}>{freightData.outrosServicos || 'Não especificado'}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoRowLabel}>Transportador</Text>
+                    <Text style={styles.infoRowValue}>{freightData.transportador || 'Não especificado'}</Text>
+                  </View>
+                  <View style={styles.photoSection}>
+                    <Text style={styles.photoSectionTitle}>Foto da mercadoria</Text>
+                    <TouchableOpacity
+                      style={[styles.addPhotoButton, uploadingPhoto && styles.uploadingButton]}
+                      onPress={handlePhotoUpload}
+                      disabled={uploadingPhoto}
+                    >
+                      <Camera size={20} color="#1E579C" />
+                      <Text style={styles.addPhotoText}>
+                        {uploadingPhoto ? 'Carregando...' : 'Adicionar foto'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {uploadingPhoto ? (
+                      <View style={styles.loadingContainer}>
+                        <View style={styles.loadingSpinner} />
+                        <Text style={styles.loadingText}>Carregando foto...</Text>
                       </View>
-                      <TouchableOpacity 
-                        style={styles.removeButton}
-                        onPress={() => setUploadedPhoto(null)}
-                      >
-                        <Text style={styles.removeButtonText}>Remover</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.photoPlaceholder}>
-                      <Package size={40} color="#CCCCCC" />
-                      <Text style={styles.photoPlaceholderText}>Nenhuma foto adicionada</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.photoSection}>
-                  <Text style={styles.photoSectionTitle}>Factura</Text>
-                  <TouchableOpacity 
-                    style={[styles.addPhotoButton, uploadingDocument && styles.uploadingButton]}
-                    onPress={handleDocumentUpload}
-                    disabled={uploadingDocument}
-                  >
-                    <FileText size={20} color="#1E579C" />
-                    <Text style={styles.addPhotoText}>
-                      {uploadingDocument ? 'Carregando...' : 'Adicionar factura'}
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  {uploadingDocument ? (
-                    <View style={styles.loadingContainer}>
-                      <View style={styles.loadingSpinner} />
-                      <Text style={styles.loadingText}>Carregando documento...</Text>
-                    </View>
-                  ) : uploadedDocument ? (
-                    <View style={styles.uploadedFileContainer}>
-                      <View style={styles.uploadedFileInfo}>
-                        <FileText size={20} color="#28A745" />
-                        <Text style={styles.uploadedFileName}>
-                          {uploadedDocument.name || 'Documento carregado'}
-                        </Text>
+                    ) : uploadedPhoto ? (
+                      <View style={styles.uploadedFileContainer}>
+                        <View style={styles.uploadedFileInfo}>
+                          <Camera size={20} color="#28A745" />
+                          <Text style={styles.uploadedFileName}>Foto carregada</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.removeButton}
+                          onPress={() => setUploadedPhoto(null)}
+                        >
+                          <Text style={styles.removeButtonText}>Remover</Text>
+                        </TouchableOpacity>
                       </View>
-                      <TouchableOpacity 
-                        style={styles.removeButton}
-                        onPress={() => setUploadedDocument(null)}
-                      >
-                        <Text style={styles.removeButtonText}>Remover</Text>
-                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.photoPlaceholder}>
+                        <CameraOff size={40} color="#CCCCCC" />
+                        <Text style={styles.photoPlaceholderText}>Nenhuma foto adicionada</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.photoSection}>
+                    <Text style={styles.photoSectionTitle}>Factura</Text>
+                    <TouchableOpacity
+                      style={[styles.addPhotoButton, uploadingDocument && styles.uploadingButton]}
+                      onPress={handleDocumentUpload}
+                      disabled={uploadingDocument}
+                    >
+                      <FileText size={20} color="#1E579C" />
+                      <Text style={styles.addPhotoText}>
+                        {uploadingDocument ? 'Carregando...' : 'Adicionar factura'}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {uploadingDocument ? (
+                      <View style={styles.loadingContainer}>
+                        <View style={styles.loadingSpinner} />
+                        <Text style={styles.loadingText}>Carregando documento...</Text>
+                      </View>
+                    ) : uploadedDocument ? (
+                      <View style={styles.uploadedFileContainer}>
+                        <View style={styles.uploadedFileInfo}>
+                          <FileText size={20} color="#28A745" />
+                          <Text style={styles.uploadedFileName}>
+                            {uploadedDocument.name || 'Documento carregado'}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.removeButton}
+                          onPress={() => setUploadedDocument(null)}
+                        >
+                          <Text style={styles.removeButtonText}>Remover</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.photoPlaceholder}>
+                        <FileText size={40} color="#CCCCCC" />
+                        <Text style={styles.photoPlaceholderText}>Nenhuma factura carregada</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.commentsSection}>
+                    <Text style={styles.photoSectionTitle}>Comentários</Text>
+                    {freightData.comentarios?.map((comentario) => (
+                      <View key={comentario.id} style={styles.commentCard}>
+                        <Text style={styles.commentAuthor}>{comentario.autor}</Text>
+                        <Text style={styles.commentText}>{comentario.texto}</Text>
+                        <Text style={styles.commentDate}>{comentario.data}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.mapSection}>
+                    <Text style={styles.photoSectionTitle}>Mapa da Rota</Text>
+                    <View style={styles.mapContainer}>
+                      <WebView
+                        source={{ html: mapHtml }}
+                        style={styles.map}
+                        javaScriptEnabled={true}
+                        domStorageEnabled={true}
+                        startInLoadingState={true}
+                        scalesPageToFit={true}
+                        scrollEnabled={false}
+                      />
                     </View>
-                  ) : (
-                    <View style={styles.photoPlaceholder}>
-                      <FileText size={40} color="#CCCCCC" />
-                      <Text style={styles.photoPlaceholderText}>Nenhuma factura carregada</Text>
-                    </View>
-                  )}
+                  </View>
+                  <View style={styles.cancelSection}>
+                    <TouchableOpacity
+                      style={styles.cancelFreteButton}
+                      onPress={handleCancelFrete}
+                    >
+                      <Text style={styles.cancelFreteButtonText}>Cancelar Frete</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-                <View style={styles.commentsSection}>
-                  <Text style={styles.photoSectionTitle}>Comentários</Text>
-                  {detalhesGerais.comentarios.map((comentario) => (
-                    <View key={comentario.id} style={styles.commentCard}>
-                      <Text style={styles.commentAuthor}>{comentario.autor}</Text>
-                      <Text style={styles.commentText}>{comentario.texto}</Text>
-                      <Text style={styles.commentDate}>{comentario.data}</Text>
+              )}
+              {activeTab === 'acompanhamento' && (
+                <View style={styles.acompanhamentoContent}>
+                  <Text style={styles.acompanhamentoTitle}>Acompanhamento do frete</Text>
+                  {acompanhamento.map((item, index) => (
+                    <View key={index} style={styles.acompanhamentoItem}>
+                      <View style={styles.acompanhamentoIndicator}>
+                        {item.estado === 'Completo' ? (
+                          <CheckCircle size={20} color="#28A745" />
+                        ) : (
+                          <Circle size={20} color="#E5E5E5" />
+                        )}
+                      </View>
+                      <View style={styles.acompanhamentoInfo}>
+                        <Text style={styles.acompanhamentoItemTitle}>{item.titulo}</Text>
+                        {item.subtitulo && (
+                          <Text style={styles.acompanhamentoSubtitle}>{item.subtitulo}</Text>
+                        )}
+                        <View style={styles.acompanhamentoStatus}>
+                          <View style={[
+                            styles.statusBadgeSmall,
+                            { backgroundColor: item.estado === 'Completo' ? '#28A74515' : '#FFC10715' }
+                          ]}>
+                            <Text style={[
+                              styles.statusTextSmall,
+                              { color: item.estado === 'Completo' ? '#28A745' : '#FFC107' }
+                            ]}>
+                              {item.estado}
+                            </Text>
+                          </View>
+                          {item.data && (
+                            <Text style={styles.acompanhamentoData}>{item.data}</Text>
+                          )}
+                        </View>
+                      </View>
                     </View>
                   ))}
                 </View>
-                <View style={styles.mapSection}>
-                  <Text style={styles.photoSectionTitle}>Mapa da Rota</Text>
-                  <View style={styles.mapContainer}>
-                    <WebView
-                      source={{ html: mapHtml }}
-                      style={styles.map}
-                      javaScriptEnabled={true}
-                      domStorageEnabled={true}
-                      startInLoadingState={true}
-                      scalesPageToFit={true}
-                      scrollEnabled={false}
-                    />
-                  </View>
-                </View>
-                <View style={styles.cancelSection}>
-                  <TouchableOpacity 
-                    style={styles.cancelFreteButton}
-                    onPress={handleCancelFrete}
-                  >
-                    <Text style={styles.cancelFreteButtonText}>Cancelar Frete</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-            {activeTab === 'acompanhamento' && (
-              <View style={styles.acompanhamentoContent}>
-                <Text style={styles.acompanhamentoTitle}>Acompanhamento do frete</Text>
-                {acompanhamento.map((item, index) => (
-                  <View key={index} style={styles.acompanhamentoItem}>
-                    <View style={styles.acompanhamentoIndicator}>
-                      {item.status === 'Completo' ? (
-                        <CheckCircle size={20} color="#28A745" />
-                      ) : (
-                        <Circle size={20} color="#E5E5E5" />
-                      )}
+              )}
+              {activeTab === 'confirmacao' && (
+                <View style={styles.confirmacaoContent}>
+                  <View style={styles.qrSection}>
+                    <Text style={styles.qrTitle}>ENTREGA DE MERCADORIA</Text>
+                    <View style={styles.qrContainer}>
+                      <Image
+                        source={require('../../assets/images/qrcode.jpeg')}
+                        style={styles.qrImage}
+                      />
                     </View>
-                    <View style={styles.acompanhamentoInfo}>
-                      <Text style={styles.acompanhamentoItemTitle}>{item.titulo}</Text>
-                      {item.subtitulo && (
-                        <Text style={styles.acompanhamentoSubtitle}>{item.subtitulo}</Text>
-                      )}
-                      <View style={styles.acompanhamentoStatus}>
-                        <View style={[
-                          styles.statusBadgeSmall,
-                          { backgroundColor: item.status === 'Completo' ? '#28A74515' : '#FFC10715' }
-                        ]}>
-                          <Text style={[
-                            styles.statusTextSmall,
-                            { color: item.status === 'Completo' ? '#28A745' : '#FFC107' }
-                          ]}>
-                            {item.status}
-                          </Text>
-                        </View>
-                        {item.data && (
-                          <Text style={styles.acompanhamentoData}>{item.data}</Text>
-                        )}
-                      </View>
+                    <Text style={styles.qrSubtext}>Escaneie para confirmar entrega</Text>
+                  </View>
+                  <View style={styles.qrSection}>
+                    <Text style={styles.qrTitle}>RECEPÇÃO DE MERCADORIA</Text>
+                    <View style={styles.qrContainer}>
+                      <Image
+                        source={require('../../assets/images/qrcode.jpeg')}
+                        style={styles.qrImage}
+                      />
                     </View>
+                    <Text style={styles.qrSubtext}>Escaneie para confirmar recepção</Text>
                   </View>
-                ))}
-              </View>
-            )}
-            {activeTab === 'confirmacao' && (
-              <View style={styles.confirmacaoContent}>
-                <View style={styles.qrSection}>
-                  <Text style={styles.qrTitle}>ENTREGA DE MERCADORIA</Text>
-                  <View style={styles.qrContainer}>
-                    <QrCode size={120} color="#1E579C" />
-                  </View>
-                  <Text style={styles.qrSubtext}>Escaneie para confirmar entrega</Text>
                 </View>
-                <View style={styles.qrSection}>
-                  <Text style={styles.qrTitle}>RECEPÇÃO DE MERCADORIA</Text>
-                  <View style={styles.qrContainer}>
-                    <QrCode size={120} color="#1E579C" />
-                  </View>
-                  <Text style={styles.qrSubtext}>Escaneie para confirmar recepção</Text>
-                </View>
-              </View>
-            )}
+              )}
             </View>
+          </View>
+        </ScrollView>
+      )}
+
+      {((!loading && Object.keys(freightData).length === 0) && hasError) && (
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingTop: 100,
+          }}
+        >
+          <CircleAlert size={60} strokeWidth={1} color="#ff0000" />
+          <Text style={{ color: '#666666', marginTop: 8 }}>
+            Um erro ocorreu ao carregar os detalhes do frete.
+          </Text>
         </View>
-      </ScrollView>
+      )}
     </View>
   );
 }
@@ -688,14 +686,6 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 0,
   },
-  statusIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F0FE',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
   statusDot: {
     width: 8,
     height: 8,
@@ -720,21 +710,27 @@ const styles = StyleSheet.create({
   timelineIndicator: {
     alignItems: 'center',
     marginRight: 16,
+    position: 'relative',
   },
+
   timelineCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
   },
+
   timelineLine: {
     position: 'absolute',
     top: 32,
-    left: 16,
+    left: '50%',
+    transform: [{ translateX: -1 }],
     width: 2,
-    height: 24,
+    height: '100%',
   },
+
   timelineContent: {
     flex: 1,
   },
@@ -893,7 +889,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 5,
     marginRight: 24,
   },
   activeTab: {
@@ -926,14 +922,14 @@ const styles = StyleSheet.create({
   },
   infoRowLabel: {
     fontSize: 14,
-    fontFamily: 'Barlow-Medium',
+    fontFamily: 'Barlow-',
     color: '#666666',
     flex: 1,
   },
   infoRowValue: {
     fontSize: 14,
-    fontFamily: 'Barlow-SemiBold',
-    color: '#333333',
+    fontFamily: 'Barlow-Medium',
+    color: '#555555',
     textAlign: 'right',
     flex: 1,
   },
@@ -1074,16 +1070,18 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   qrContainer: {
-    backgroundColor: '#F8F9FA',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 20,
   },
   qrSubtext: {
     fontSize: 12,
     fontFamily: 'Barlow-Regular',
     color: '#666666',
     textAlign: 'center',
+  },
+  qrImage: {
+    width: 200,
+    height: 200,
+    overflow: 'hidden',
   },
   mapSection: {
     marginTop: 20,
